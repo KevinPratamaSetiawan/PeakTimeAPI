@@ -1,5 +1,8 @@
 const { Storage } = require('@google-cloud/storage');
 const con  = require('../service/connectDatabase');
+const tf = require('@tensorflow/tfjs');
+const tfdf = require('@tensorflow/tfjs-tfdf');
+const DataFrame = require('dataframe-js').DataFrame;
 const nodemailer = require('nodemailer');
 const util = require('util');
 const mysql = require('mysql');
@@ -80,11 +83,11 @@ async function checkListedEmail(checkEmail, checkPassword = false){
 }
 
 async function storeNewUser(data){
-    const { id, email, username, password, birthdate, authenticationCode, createdAt, updatedAt } = data;
+    const { id, email, username, password, authenticationCode, createdAt, updatedAt } = data;
     const defaultProfilePicture = process.env.DEFAULT_PROFILE_PICTURE;
 
-    const query = 'INSERT INTO accounts (id, email, username, password, birthdate, profilePictureUrl, authenticationCode, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    const values = [id, email, username, password, birthdate, defaultProfilePicture, authenticationCode, createdAt, updatedAt];
+    const query = 'INSERT INTO accounts (id, email, username, password, profilePictureUrl, authenticationCode, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [id, email, username, password, defaultProfilePicture, authenticationCode, createdAt, updatedAt];
 
     try {
         const result = await queryAsync(query, values);
@@ -138,7 +141,7 @@ async function updateAuthentication(userId){
 }
 
 async function getUserData(userId) {
-    const query = 'SELECT id, email, username, birthdate, profilePictureUrl, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
+    const query = 'SELECT id, email, username, profilePictureUrl, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
     try {
         const result = await queryAsync(query);
         return result;
@@ -148,9 +151,9 @@ async function getUserData(userId) {
 }
 
 async function editUserData(userId, editData){
-    const { email, username, password, birthdate, authenticationCode, updatedAt } = editData;
-    const query = "UPDATE accounts SET email = ?, username = ?, password = ?, birthdate = ?, updatedAt = ? WHERE id = ?";
-    const values = [email, username, password, birthdate, updatedAt, userId];
+    const { email, username, password, updatedAt } = editData;
+    const query = "UPDATE accounts SET email = ?, username = ?, password = ?, updatedAt = ? WHERE id = ?";
+    const values = [email, username, password, updatedAt, userId];
 
     try {
         const result = await queryAsync(query, values);
@@ -202,6 +205,32 @@ async function editProfilePicture(userId, image, fileName){
         await queryAsync(query, values);
         return await getUserData(userId);
         
+    } catch (error) {
+        throw error;
+    }
+}
+
+//Form System
+async function storeNewForm(userId, data){
+    const { id, userAge, taskType, averageRestHour,  moodBeforeWork, taskDeadline, taskImportance, sleepAverageHour, taskUrgency, totalDistraction, averageWorkHour, workDays, createdAt } = data;
+
+    const query = 'INSERT INTO forms (id, fkUserIdForms, userAge, taskType, averageRestHour,  moodBeforeWork, taskDeadline, taskImportance, sleepAverageHour, taskUrgency, totalDistraction, averageWorkHour, workDays, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [id, userId, userAge, taskType, averageRestHour,  moodBeforeWork, taskDeadline, taskImportance, sleepAverageHour, taskUrgency, totalDistraction, averageWorkHour, workDays, createdAt];
+
+    try {
+        const result = await queryAsync(query, values);
+        return result;
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function getForm(userId) {
+    const query = 'SELECT * FROM forms WHERE fkUserIdForms = ' + mysql.escape(userId);
+
+    try {
+        const result = await queryAsync(query);
+        return result;
     } catch (error) {
         throw error;
     }
@@ -393,11 +422,75 @@ async function searchData(userId, searchWord){
     }
 }
 
+//Model System
+async function predictChronotype(model, formData){
+    console.log('Inside function');
+    const { userAge, taskType, averageRestHour,  moodBeforeWork, taskDeadline, taskImportance, sleepAverageHour, taskUrgency, totalDistraction, averageWorkHour, workDays } = formData;
+    const chronotypeList = ['Lion', 'Bear', 'Wolf', 'Dolphin'];
+
+    const features = {
+        'Age': [userAge],
+        'Task': [taskType],
+        'average_rest': [averageRestHour],
+        'mood_before_work': [moodBeforeWork],
+        'deadline': [taskDeadline],
+        'importance': [taskImportance],
+        'sleep_average': [sleepAverageHour],
+        'urgency': [taskUrgency],
+        'total_gangguan': [totalDistraction],
+        'average_work_hour': [averageWorkHour],
+        'work_days': [workDays]
+    };
+
+    // const df = new DataFrame(Object.keys(features).map(key => {
+    //     return {[key]: features[key][0]};
+    // }), Object.keys(features));
+
+    const df = tf.data.array(features);
+
+    console.log('Finish dat frame');
+
+    const featuresArray = df.toArray().map(row => row.map(value => Number(value)));
+
+    const featuresTensor = tf.tensor2d(featuresArray);
+
+    console.log('Finish tensor');
+    console.log(featuresTensor);
+    console.log(model);
+
+    try {
+        const prediction = await model.executeAsync(featuresTensor);
+        console.log('Finish predict');
+
+        const predictionArray = prediction.arraySync()[0];
+
+        const maxProbability = -Infinity;
+        const maxIndex = 0;
+
+        for(let i=0;i<4;i++){
+            if(predictionArray[i] > maxProbability){
+                maxProbability = predictionArray[i];
+                maxIndex = i;
+            }
+        }
+
+        const chronotype = chronotypeList[maxIndex];
+        maxProbability = maxProbability * 100;
+
+        console.log('Finish chrono');
+
+        return { chronotype, maxProbability };
+    } catch (error) {
+        throw error;
+    }
+}
+
 module.exports = { 
     getFormattedDateTime,
     checkListedEmail, storeNewUser, getUserData, editUserData, deleteUser, updateAuthentication, editProfilePicture,
+    storeNewForm, getForm,
     storeNewEvent, getEvent, editEventData, deleteEvent,
     storeNewNote, getNote, editNoteData, deleteNote,
     storeNewNotification, getNotification,
-    searchData
+    searchData, predictChronotype
 };

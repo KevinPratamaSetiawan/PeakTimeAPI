@@ -8,9 +8,11 @@ SELECT * FROM accounts;
 SELECT * FROM events;
 SELECT * FROM notes;
 SELECT * FROM notifications;
+SELECT * FROM forms;
 
-DELETE FROM accounts;
+DELETE FROM forms;
 
+DROP TABLE forms;
 DROP TABLE notifications;
 DROP TABLE notes;
 DROP TABLE events;
@@ -21,9 +23,9 @@ CREATE TABLE accounts(
     email varchar(255) NOT NULL,
     username varchar(255) NOT NULL,
     password varchar(255) NOT NULL,
-    birthdate date,
     profilePictureUrl varchar(2048),
-    authenticationCode varchar(4) NOT NULL, 
+    authenticationCode varchar(4) NOT NULL,
+    chronotype varchar(255),
     createdAt datetime NOT NULL,
     updatedAt datetime NOT NULL,
     PRIMARY KEY(id)
@@ -64,4 +66,23 @@ CREATE TABLE notifications(
     createdAt datetime NOT NULL,
     PRIMARY KEY(id),
     CONSTRAINT fkUserIdNotifications FOREIGN KEY (fkUserIdNotifications) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE forms(
+	id varchar(5) NOT NULL,
+    fkUserIdForms varchar(16) NOT NULL,
+    userAge bigint NOT NULL,
+    taskType bigint NOT NULL,
+    averageRestHour bigint NOT NULL,
+    moodBeforeWork bigint NOT NULL,
+    taskDeadline bigint NOT NULL,
+    taskImportance bigint NOT NULL,
+    sleepAverageHour bigint NOT NULL,
+    taskUrgency bigint NOT NULL,
+    totalDistraction bigint NOT NULL,
+    averageWorkHour bigint NOT NULL,
+    workDays bigint NOT NULL,
+    createdAt datetime NOT NULL,
+    PRIMARY KEY(id),
+    CONSTRAINT fkUserIdForms FOREIGN KEY (fkUserIdForms) REFERENCES accounts(id) ON DELETE CASCADE
 );

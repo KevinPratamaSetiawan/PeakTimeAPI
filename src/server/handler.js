@@ -2,17 +2,18 @@ const {nanoid} = require('nanoid');
 const { 
     getFormattedDateTime,
     checkListedEmail, storeNewUser, getUserData, editUserData, deleteUser, updateAuthentication, editProfilePicture,
+    storeNewForm, getForm,
     storeNewEvent, getEvent, editEventData, deleteEvent,
     storeNewNote, getNote, editNoteData, deleteNote,
     storeNewNotification, getNotification,
-    searchData
+    searchData, predictChronotype
 } = require('../service/serviceFunctions');
 
 
 //Login/Profile System
 async function createNewUserHandler(request, h){
     try{
-        const { email, username, password, birthdate } = request.payload;
+        const { email, username, password } = request.payload;
         const { emailStatus, passwordStatus, userId } = await checkListedEmail(email);
 
         if(emailStatus === true){
@@ -34,7 +35,6 @@ async function createNewUserHandler(request, h){
             "email": email,
             "username": username,
             "password": password,
-            "birthdate": birthdate,
             "authenticationCode": authenticationCode,
             "createdAt": createdAt,
             "updatedAt": updatedAt
@@ -184,14 +184,13 @@ async function getUserByUserIdHandler(request, h){
 async function editUserByUserIdHandler(request, h){
     try{
         const { userid } = request.params;
-        const { email, username, password, birthdate } = request.payload;
+        const { email, username, password } = request.payload;
         const updatedAt = getFormattedDateTime();
 
         const editData = {
             "email": email,
             "username": username,
             "password": password,
-            "birthdate": birthdate,
             "updatedAt": updatedAt
         }
 
@@ -200,7 +199,6 @@ async function editUserByUserIdHandler(request, h){
         if( checkUpdate.email === editData.email && 
             checkUpdate.username === editData.username && 
             checkUpdate.password === editData.password && 
-            checkUpdate.birthdate === editData.birthdate && 
             checkUpdate.updatedAt === editData.updatedAt){
 
             const response = h.response({
@@ -297,6 +295,113 @@ async function editUserPictureByUserIdHandler(request, h){
         });
         response.code(500);
         return response
+    }
+}
+
+//Form System
+async function saveFormDataByUserIdHandler(request, h){
+    try{
+        const { userid } = request.params;
+        const { age, task, average_rest, mood_before_work, deadline, importance, sleep_average, urgency, total_gangguan, average_work_hour, work_days } = request.payload;
+
+        let taskType = 0;
+        let moodBeforeWork = 0;
+        let taskDeadline = 0;
+        let workDays = 0;
+
+        const id = nanoid(5);
+        const totalDistraction = total_gangguan.length;
+        const createdAt = getFormattedDateTime();
+
+        const taskTransform = ['Kreatif (Desain grafis, Penulis, dll)', 'Analitis (Analisis data, Analisis keuangan, dll)', 'Fisik (Pemain sepak bola, Pemain voli, Buruh, dll)', 'Administratif (Admin, Sekretaris, dll)', 'Komunikasi (Jurnalis, Penyiar, Public relation, dll)', 'Penelitian (Peneliti lingkungan, Peneliti budaya, Data scientist, dll)', 'Akademik (Dosen, Guru, Siswa, Mahasiswa, dll)'];
+        const moodTransform = ['Semangat', 'Cemas', 'Malas'];
+        const deadlineTransform = ['Kurang dari 3 hari', '3 hari hingga 1 minggu', '1 hingga 2 minggu', '2 minggu hingga 1 bulan', 'Lebih dari 1 bulan'];
+        const workDaysTransform = ['1 hari', '2 hari', '3 hari', '4 hari', '5 hari', '6 hari', '7 hari'];
+
+        for(let i=0;i<=7;i++){
+            if(i<7 && task === taskTransform[i]){
+                taskType = i;
+            }
+
+            if(i<3 && mood_before_work === moodTransform[i]){
+                moodBeforeWork = i;
+            }
+
+            if(i<5 && deadline === deadlineTransform[i]){
+                taskDeadline = i;
+            }
+
+            if(i>0 && work_days === workDaysTransform[i]){
+                workDays = i+1;
+            }
+        }
+
+        const formData = {
+            'id': id,
+            'userAge': age,
+            'taskType': taskType,
+            'averageRestHour': average_rest, 
+            'moodBeforeWork': moodBeforeWork,
+            'taskDeadline': taskDeadline,
+            'taskImportance': importance,
+            'sleepAverageHour': sleep_average,
+            'taskUrgency': urgency,
+            'totalDistraction': totalDistraction,
+            'averageWorkHour': average_work_hour,
+            'workDays': workDays,
+            'createdAt': createdAt
+        }
+
+        await storeNewForm(userid, formData);
+
+        if(await getForm(userid)){
+            const response = h.response({
+                status: 'success',
+                message: 'Form data successfully stored.',
+            });
+            response.code(201);
+            return response;
+        }
+
+    }catch(error){
+        const response = h.response({
+            status: 'fail',
+            message: error.message,
+        });
+        response.code(500);
+        return response
+    }
+}
+
+async function getFormDataByUserIdHandler(request, h){
+    try{
+        const { userid } = request.params;
+        
+        const data = await getForm(userid);
+
+        if(data.length !== 0){
+            const response = h.response({
+                status: 'success',
+                data: data
+            });
+            response.code(200);
+            return response;
+        }
+
+        const response = h.response({
+            status: 'fail',
+            message: 'Form data not found.'
+        });
+        response.code(404);
+        return response;
+
+    }catch(error){
+        const response = h.response({
+            status: 'fail',
+            message: error.message,
+          });
+          response.code(500);
+          return response
     }
 }
 
@@ -843,10 +948,43 @@ async function searchDataHandler(request, h){
     }
 }
 
+//Model System
+async function createPredictionByUserIdHandler(request, h){
+    try{
+        const { userid } = request.params;
+        const { model } = request.server.app;
+        const [formData] = await getForm(userid);
+
+        console.log(formData);
+
+        const { chronotype, maxProbability } = await predictChronotype(model, formData);
+
+        const response = h.response({
+            status: 'success',
+            message: 'Prediction success.',
+            data:{
+                chronotype,
+                maxProbability
+            }
+        });
+        response.code(200);
+        return response;
+
+    }catch(error){
+        const response = h.response({
+            status: 'fail',
+            message: error.message,
+        });
+        response.code(500);
+        return response
+    }
+}
+
 module.exports = { 
     createNewUserHandler, checkLoginUserHandler, authenticationHandler, getUserByUserIdHandler, editUserByUserIdHandler, deleteUserByUserIdHandler, editUserPictureByUserIdHandler,
+    saveFormDataByUserIdHandler, getFormDataByUserIdHandler,
     createNewEventByUserIdHandler, getEventListByUserIdHandler, getEventByEventIdHandler, editEventByEventIdHandler, deleteEventByEventIdHandler,
     createNoteByUserIdHandler, getNotesListByUserIdHandler, getNotesByNoteIdHandler, editNotesByNoteIdHandler, deleteNotesByNoteIdHandler,
     createNotififcationByUserIdHandler, getNotififcationListByUserIdHandler, getNotificationByNotificationIdHandler,
-    searchDataHandler
+    searchDataHandler, createPredictionByUserIdHandler
 };

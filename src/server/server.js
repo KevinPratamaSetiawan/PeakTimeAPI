@@ -1,5 +1,9 @@
+process.env.TF_ENABLE_ONEDNN_OPTS = '0';
+
+require('dotenv').config();
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/route');
+const loadModel = require('../service/loadModel');
  
 (async () => {
     const server = Hapi.server({
@@ -13,8 +17,8 @@ const routes = require('../server/route');
         },
     });
  
-    // const model = await loadModel();
-    // server.app.model = model;
+    const model = await loadModel();
+    server.app.model = model;
  
     server.route(routes);
  

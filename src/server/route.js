@@ -1,9 +1,10 @@
 const { 
     createNewUserHandler, checkLoginUserHandler, authenticationHandler, getUserByUserIdHandler, editUserByUserIdHandler, deleteUserByUserIdHandler, editUserPictureByUserIdHandler,
+    saveFormDataByUserIdHandler, getFormDataByUserIdHandler,
     createNewEventByUserIdHandler, getEventListByUserIdHandler, getEventByEventIdHandler, editEventByEventIdHandler, deleteEventByEventIdHandler,
     createNoteByUserIdHandler, getNotesListByUserIdHandler, getNotesByNoteIdHandler, editNotesByNoteIdHandler, deleteNotesByNoteIdHandler,
     createNotififcationByUserIdHandler, getNotififcationListByUserIdHandler, getNotificationByNotificationIdHandler,
-    searchDataHandler 
+    searchDataHandler, createPredictionByUserIdHandler
 } = require('../server/handler');
 
 const routes = [
@@ -15,13 +16,13 @@ const routes = [
     },
     {
         method: 'POST',
-        path: '/login',
-        handler: checkLoginUserHandler,
+        path: '/users/{userid}',
+        handler: authenticationHandler,
     },
     {
         method: 'POST',
-        path: '/users/{userid}',
-        handler: authenticationHandler,
+        path: '/login',
+        handler: checkLoginUserHandler,
     },
     {
         method: 'GET',
@@ -53,16 +54,16 @@ const routes = [
     },
 
     //Form System (Nunggu ML)
-    // {
-    //     method: 'POST',
-    //     path: '/users/{userid}/forms',
-    //     handler: saveFormByEmailHandler,
-    // },
-    // {
-    //     method: 'GET',
-    //     path: '/users/{userid}/forms',
-    //     handler: getFormByEmailHandler,
-    // },
+    {
+        method: 'POST',
+        path: '/users/{userid}/forms',
+        handler: saveFormDataByUserIdHandler,
+    },
+    {
+        method: 'GET',
+        path: '/users/{userid}/forms',
+        handler: getFormDataByUserIdHandler,
+    },
 
     //Schedule System
     {
@@ -91,15 +92,12 @@ const routes = [
         handler: deleteEventByEventIdHandler,
     },
 
-    //Recommendation Model System 
-    //current understanding is when create event button clicked 
-    // by user app send request for recommendation to API while 
-    // opening the create page
-    // {
-    //     method: 'POST',
-    //     path: '/users/{userid}/model',
-    //     handler: createPredictionByEmailHandler,
-    // },
+    // Recommendation Model System 
+    {
+        method: 'GET',
+        path: '/users/{userid}/model',
+        handler: createPredictionByUserIdHandler,
+    },
 
     //Visualization System (Nunggu Database dan Persetujuan format)
     // {
@@ -158,9 +156,6 @@ const routes = [
         path: '/users/{userid}/notifications/{notificationid}',
         handler: getNotificationByNotificationIdHandler,
     },
-
-    //Using Google API System
-    //Profile System
 ];
 
 module.exports = routes;
