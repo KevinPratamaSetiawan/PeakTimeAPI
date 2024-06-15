@@ -6,9 +6,8 @@ const {
     storeNewEvent, getEvent, editEventData, deleteEvent,
     storeNewNote, getNote, editNoteData, deleteNote,
     storeNewNotification, getNotification,
-    searchData, predictChronotype
+    searchData, predictChronotype, getChronotypeData
 } = require('../service/serviceFunctions');
-
 
 //Login/Profile System
 async function createNewUserHandler(request, h){
@@ -955,9 +954,7 @@ async function createPredictionByUserIdHandler(request, h){
         const { model } = request.server.app;
         const [formData] = await getForm(userid);
 
-        console.log(formData);
-
-        const { chronotype, maxProbability } = await predictChronotype(model, formData);
+        const { chronotype, maxProbability } = await predictChronotype(userid, model, formData);
 
         const response = h.response({
             status: 'success',
@@ -980,11 +977,59 @@ async function createPredictionByUserIdHandler(request, h){
     }
 }
 
+//Visual System
+async function getVisualDataByUserIdHandler(request, h){
+    try{
+        const { userid } = request.params;
+        // const { chronotype } = request.params;
+        const [ category ] = await getUserData(userid);
+        const chronotype = category.chronotype;
+
+        if(chronotype === "Bear" || chronotype === "Lion" || chronotype === "Wolf" || chronotype === "Dolphin"){            
+            const { description, percentage, workStartTime, workFinishTime, wakeUpTime, sleepTime } = await getChronotypeData(chronotype);
+            
+            const response = h.response({
+                status: 'success',
+                message: 'Data success.',
+                data:{
+                    chronotype,
+                    description,
+                    percentage,
+                    workStartTime, 
+                    workFinishTime, 
+                    wakeUpTime, 
+                    sleepTime
+                }
+            });
+            response.code(200);
+            return response;
+        }
+
+        const response = h.response({
+            status: 'fail',
+            message: 'Error: there is no matching chronotype.',
+            data:{
+                chronotype
+            }
+        });
+        response.code(400);
+        return response;
+        
+    }catch(error){
+        const response = h.response({
+            status: 'fail',
+            message: error.message,
+        });
+        response.code(500);
+        return response
+    }
+}
+
 module.exports = { 
     createNewUserHandler, checkLoginUserHandler, authenticationHandler, getUserByUserIdHandler, editUserByUserIdHandler, deleteUserByUserIdHandler, editUserPictureByUserIdHandler,
     saveFormDataByUserIdHandler, getFormDataByUserIdHandler,
     createNewEventByUserIdHandler, getEventListByUserIdHandler, getEventByEventIdHandler, editEventByEventIdHandler, deleteEventByEventIdHandler,
     createNoteByUserIdHandler, getNotesListByUserIdHandler, getNotesByNoteIdHandler, editNotesByNoteIdHandler, deleteNotesByNoteIdHandler,
     createNotififcationByUserIdHandler, getNotififcationListByUserIdHandler, getNotificationByNotificationIdHandler,
-    searchDataHandler, createPredictionByUserIdHandler
+    searchDataHandler, createPredictionByUserIdHandler, getVisualDataByUserIdHandler
 };

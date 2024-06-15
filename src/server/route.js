@@ -4,7 +4,7 @@ const {
     createNewEventByUserIdHandler, getEventListByUserIdHandler, getEventByEventIdHandler, editEventByEventIdHandler, deleteEventByEventIdHandler,
     createNoteByUserIdHandler, getNotesListByUserIdHandler, getNotesByNoteIdHandler, editNotesByNoteIdHandler, deleteNotesByNoteIdHandler,
     createNotififcationByUserIdHandler, getNotififcationListByUserIdHandler, getNotificationByNotificationIdHandler,
-    searchDataHandler, createPredictionByUserIdHandler
+    searchDataHandler, createPredictionByUserIdHandler, getVisualDataByUserIdHandler
 } = require('../server/handler');
 
 const routes = [
@@ -53,7 +53,7 @@ const routes = [
         }
     },
 
-    //Form System (Nunggu ML)
+    //Form System
     {
         method: 'POST',
         path: '/users/{userid}/forms',
@@ -94,17 +94,17 @@ const routes = [
 
     // Recommendation Model System 
     {
-        method: 'GET',
+        method: 'POST',
         path: '/users/{userid}/model',
         handler: createPredictionByUserIdHandler,
     },
 
-    //Visualization System (Nunggu Database dan Persetujuan format)
-    // {
-    //     method: 'GET',
-    //     path: '/users/{userid}/visuals',
-    //     handler: getVisualDataByEmailHandler,
-    // },
+    // Visualization System
+    {
+        method: 'GET',
+        path: '/users/{userid}/visuals',
+        handler: getVisualDataByUserIdHandler,
+    },
 
     //Notes System
     {

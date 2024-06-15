@@ -141,7 +141,7 @@ async function updateAuthentication(userId){
 }
 
 async function getUserData(userId) {
-    const query = 'SELECT id, email, username, profilePictureUrl, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
+    const query = 'SELECT id, email, username, profilePictureUrl, chronotype, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
     try {
         const result = await queryAsync(query);
         return result;
@@ -423,8 +423,7 @@ async function searchData(userId, searchWord){
 }
 
 //Model System
-async function predictChronotype(model, formData){
-    console.log('Inside function');
+async function predictChronotype(userId, model, formData){
     const { userAge, taskType, averageRestHour,  moodBeforeWork, taskDeadline, taskImportance, sleepAverageHour, taskUrgency, totalDistraction, averageWorkHour, workDays } = formData;
     const chronotypeList = ['Lion', 'Bear', 'Wolf', 'Dolphin'];
 
@@ -442,47 +441,118 @@ async function predictChronotype(model, formData){
         'work_days': [workDays]
     };
 
-    // const df = new DataFrame(Object.keys(features).map(key => {
-    //     return {[key]: features[key][0]};
-    // }), Object.keys(features));
+    // Dynamic Input
+    const featuresTensor = {
+        age: tf.tensor(features.Age, [1], 'int32'),
+        task: tf.tensor(features.Task, [1], 'int32'),
+        average_rest: tf.tensor(features.average_rest, [1], 'int32'),
+        mood_before_work: tf.tensor(features.mood_before_work, [1], 'int32'),
+        deadline: tf.tensor(features.deadline, [1], 'int32'),
+        importance: tf.tensor(features.importance, [1], 'int32'),
+        sleep_average: tf.tensor(features.sleep_average, [1], 'int32'),
+        urgency: tf.tensor(features.urgency, [1], 'int32'),
+        total_gangguan: tf.tensor(features.total_gangguan, [1], 'int32'),
+        average_work_hour: tf.tensor(features.average_work_hour, [1], 'int32'),
+        work_days: tf.tensor(features.work_days, [1], 'int32')
+    };
 
-    const df = tf.data.array(features);
-
-    console.log('Finish dat frame');
-
-    const featuresArray = df.toArray().map(row => row.map(value => Number(value)));
-
-    const featuresTensor = tf.tensor2d(featuresArray);
-
-    console.log('Finish tensor');
-    console.log(featuresTensor);
-    console.log(model);
+    // Static Input: for testing
+    // const featuresTensor = {
+    //     age: tf.tensor(29, [1], 'int32'),
+    //     task: tf.tensor(5, [1], 'int32'),
+    //     average_rest: tf.tensor(30, [1], 'int32'),
+    //     mood_before_work: tf.tensor(3, [1], 'int32'),
+    //     deadline: tf.tensor(2, [1], 'int32'),
+    //     importance: tf.tensor(3, [1], 'int32'),
+    //     sleep_average: tf.tensor(7, [1], 'int32'),
+    //     urgency: tf.tensor(1, [1], 'int32'),
+    //     total_gangguan: tf.tensor(0, [1], 'int32'),
+    //     average_work_hour: tf.tensor(8, [1], 'int32'),
+    //     work_days: tf.tensor(5, [1], 'int32')
+    // };
 
     try {
         const prediction = await model.executeAsync(featuresTensor);
-        console.log('Finish predict');
-
+        
         const predictionArray = prediction.arraySync()[0];
+        // console.log("Prediction : ")
+        // console.log(predictionArray)
 
-        const maxProbability = -Infinity;
-        const maxIndex = 0;
+        let maxProbability = -Infinity;
+        let maxIndex = 0;
 
-        for(let i=0;i<4;i++){
+        for(let i=4;i<8;i++){
             if(predictionArray[i] > maxProbability){
                 maxProbability = predictionArray[i];
                 maxIndex = i;
             }
         }
 
-        const chronotype = chronotypeList[maxIndex];
+        const chronotype = chronotypeList[maxIndex-4];
         maxProbability = maxProbability * 100;
 
-        console.log('Finish chrono');
+        // console.log('Finish chrono :');
+        // console.log(chronotype);
+        // console.log('====================================');
+        // console.log(maxProbability);
+
+        const query = "UPDATE accounts SET chronotype = ? WHERE id = ?";
+        const values = [chronotype, userId];
+
+        await queryAsync(query, values);
 
         return { chronotype, maxProbability };
     } catch (error) {
         throw error;
     }
+}
+
+//Visual System
+async function makeTime(hour, minute, second){
+    let date = new Date();
+
+    date.setHours(hour, minute, second, 0);
+
+    let hours = date.getHours().toString().padStart(2, '0');
+    let minutes = date.getMinutes().toString().padStart(2, '0');
+
+    let formattedTime = `${hours}:${minutes}`;
+
+    return formattedTime;
+}
+
+async function getChronotypeData(chronotype){
+    let description, percentage, workStartTime, workFinishTime, wakeUpTime, sleepTime;
+
+    if(chronotype === "Lion"){
+        description = "People with the lion chronotype tend to wake up early, and feel most energetic and productive before noon. Lions tend to feel most accomplished when they tackle their daily to-do list as soon as possible. As energy levels begin to fall in the early afternoon, lions typically wind down in the early evening and fall asleep early night. Roughly 15% of people have the lion chronotype.";
+        percentage = "15% of population.";
+        workStartTime = await makeTime(9, 0, 0);
+        workFinishTime = await makeTime(14, 0, 0);
+        wakeUpTime = await makeTime(6, 0, 0);
+        sleepTime = await makeTime(22, 0, 0);
+    }else if(chronotype === "Bear"){
+        description = "The bear is the most common human chronotype, found in roughly 55% of the population. People with the bear chronotype — like bears in the wild — essentially follow the sun, waking up when the sun rises in early morning and retiring as darkness falls in the early evening.";
+        percentage = "55% of population.";
+        workStartTime = await makeTime(10, 0, 0);
+        workFinishTime = await makeTime(14, 0, 0);
+        wakeUpTime = await makeTime(7, 0, 0);
+        sleepTime = await makeTime(23, 0, 0);
+    }else if(chronotype === "Wolf"){
+        description = "If you know someone who isn’t a “morning person,” chances are they’re a wolf — about 15% of the population has this chronotype. Wolves usually wake up later in the day. They’ll also get bursts of energy in the evening. Midnight or later is a common bedtime for wolves.";
+        percentage = "15% of population";
+        workStartTime = await makeTime(13, 0, 0);
+        workFinishTime = await makeTime(17, 0, 0);
+        wakeUpTime = await makeTime(7, 30, 0);
+        sleepTime = await makeTime(0, 0, 0);
+    }else if(chronotype === "Dolphin"){
+        description = "About 10% of people have the dolphin chronotype, which is the hardest to form a schedule around without sacrificing sleep quality. This chronotype gets its name because dolphins in the wild remain alert while sleeping to evade predators. People with this chronotype tend to be sensitive to light and noise while they sleep, and prone to fragmented sleep patterns. Many are considered insomniacs.";
+        percentage = "10% of population.";
+        workStartTime = await makeTime(15, 0, 0);
+        workFinishTime = await makeTime(19, 0, 0);
+        wakeUpTime = await makeTime(6, 0, 0);
+        sleepTime = await makeTime(23, 0, 0);
+    }return { description, percentage, workStartTime, workFinishTime, wakeUpTime, sleepTime }
 }
 
 module.exports = { 
@@ -492,5 +562,5 @@ module.exports = {
     storeNewEvent, getEvent, editEventData, deleteEvent,
     storeNewNote, getNote, editNoteData, deleteNote,
     storeNewNotification, getNotification,
-    searchData, predictChronotype
+    searchData, predictChronotype, getChronotypeData
 };

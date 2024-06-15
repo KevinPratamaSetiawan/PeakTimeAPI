@@ -26,6 +26,4 @@ require('dotenv').config();
   // return con;
 // }
 
-
-
 module.exports = con;
