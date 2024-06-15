@@ -1,4 +1,5 @@
 node_modules
-resource
 package-lock.json
 .env
+peaktime-424901-83d2cc831ad9.json
+sqlschema.sql
