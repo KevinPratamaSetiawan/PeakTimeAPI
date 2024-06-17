@@ -121,8 +121,8 @@ async function sendAuthenticationEmail(email, code){
     try {
         let info = await transporter.sendMail(mailOptions);
     
-        console.log('Message sent: %s', info.messageId);
-        console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+        // console.log('Message sent: %s', info.messageId);
+        // console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
     } catch (error) {
         throw error;
     }
@@ -141,7 +141,7 @@ async function updateAuthentication(userId){
 }
 
 async function getUserData(userId) {
-    const query = 'SELECT id, email, username, profilePictureUrl, chronotype, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
+    const query = 'SELECT id, email, username, password, profilePictureUrl, chronotype, authenticationCode FROM accounts WHERE id = ' + mysql.escape(userId);
     try {
         const result = await queryAsync(query);
         return result;
@@ -244,7 +244,8 @@ async function storeNewEvent(userId, data){
     const values = [id, userId, title, description, startDay, finishDay, startTime, finishTime, finishStatus, createdAt, updatedAt];
 
     try {
-        const result = await queryAsync(query, values);
+        await queryAsync(query, values);
+        const result = await getEvent(userId, id);
         return result;
     } catch (error) {
         throw error;
@@ -307,7 +308,8 @@ async function storeNewNote(userId, data){
     const values = [id, userId, title, description, createdAt, updatedAt];
 
     try {
-        const result = await queryAsync(query, values);
+        await queryAsync(query, values);
+        const result = await getNote(userId, id);
         return result;
     } catch (error) {
         throw error;
@@ -369,7 +371,8 @@ async function storeNewNotification(userId, data){
     const values = [id, userId, title, description, createdAt];
 
     try {
-        const result = await queryAsync(query, values);
+        await queryAsync(query, values);
+        const result = await getNotification(userId, id);
         return result;
     } catch (error) {
         throw error;
@@ -378,7 +381,7 @@ async function storeNewNotification(userId, data){
 
 async function getNotification(userId, notificationId = false){
     if(notificationId === false){
-        const query = 'SELECT * FROM notifications WHERE fkUserIdNotifications = ? ORDER BY updatedAt DESC';
+        const query = 'SELECT * FROM notifications WHERE fkUserIdNotifications = ? ORDER BY createdAt DESC';
         const values = [userId];
 
         try {

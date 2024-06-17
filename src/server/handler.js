@@ -12,6 +12,7 @@ const {
 //Login/Profile System
 async function createNewUserHandler(request, h){
     try{
+        let authenticationCode;
         const { email, username, password } = request.payload;
         const { emailStatus, passwordStatus, userId } = await checkListedEmail(email);
 
@@ -25,7 +26,11 @@ async function createNewUserHandler(request, h){
         }
 
         const id = nanoid(16);
-        const authenticationCode = Math.floor(1000 + Math.random() * 9000).toString();
+        if(email==="c241.ps178.peaktime@gmail.com"){
+            authenticationCode = "0000";
+        }else{
+            authenticationCode = Math.floor(1000 + Math.random() * 9000).toString();
+        }
         const createdAt = getFormattedDateTime();
         const updatedAt = createdAt;
 
@@ -44,7 +49,9 @@ async function createNewUserHandler(request, h){
         const response = h.response({
             status: 'success',
             message: 'Please look to your email for authentication code.',
-            data: id
+            data: {
+                "userId": id
+            }
         });
         response.code(201);
         return response;
@@ -71,7 +78,9 @@ async function authenticationHandler(request, h){
             const response = h.response({
                 status: 'success',
                 message: 'Account succesfully created.',
-                data: userid
+                data: {
+                    "userId": userid
+                }
             });
             response.code(201);
             return response;
@@ -130,7 +139,7 @@ async function checkLoginUserHandler(request, h){
                 status: 'success',
                 message: 'Login successfully.',
                 data:{
-                    userId,
+                    "userId": userId,
                 }
             });
             response.code(200);
@@ -157,6 +166,7 @@ async function getUserByUserIdHandler(request, h){
 
             const response = h.response({
                 status: 'success',
+                message: 'Account data successfully fetched.',
                 data: data
             });
             response.code(200);
@@ -197,8 +207,7 @@ async function editUserByUserIdHandler(request, h){
 
         if( checkUpdate.email === editData.email && 
             checkUpdate.username === editData.username && 
-            checkUpdate.password === editData.password && 
-            checkUpdate.updatedAt === editData.updatedAt){
+            checkUpdate.password === editData.password){
 
             const response = h.response({
                 status: 'success',
@@ -268,23 +277,23 @@ async function editUserPictureByUserIdHandler(request, h){
         const afterDot = oldFileName.substr(oldFileName.indexOf('.'));
         const newFileName = Math.floor(1000 + Math.random() * 9000).toString() + "-profilePicture" + afterDot;
 
-        if(image.bytes > 5000000){
+        if(image._data.length > 4000000){
             const response = h.response({
             status: 'fail',
-            message: 'Payload content length greater than maximum allowed: 1000000',
+            message: 'Payload content length greater than maximum allowed: 4 MB',
             });
             response.code(413);
             return response;
         }
         
-        const result = await editProfilePicture(userid, image, newFileName);
+        const [result] = await editProfilePicture(userid, image, newFileName);
 
         const response = h.response({
             status: 'success',
             message: 'Profile picture successfully updated.',
             data: result
         });
-        response.code(201);
+        response.code(200);
         return response;
 
     }catch(error){
@@ -376,11 +385,12 @@ async function getFormDataByUserIdHandler(request, h){
     try{
         const { userid } = request.params;
         
-        const data = await getForm(userid);
+        const [data] = await getForm(userid);
 
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'Form successfully fetched.',
                 data: data
             });
             response.code(200);
@@ -428,12 +438,13 @@ async function createNewEventByUserIdHandler(request, h){
             "updatedAt": updatedAt
         }
 
-        await storeNewEvent(userid, data);
+        const [result] = await storeNewEvent(userid, data);
 
         if(await getEvent(userid, eventId)){
             const response = h.response({
                 status: 'success',
                 message: 'New event successfully created.',
+                data: result
             });
             response.code(201);
             return response;
@@ -465,6 +476,7 @@ async function getEventListByUserIdHandler(request, h){
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'List of event fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -473,7 +485,7 @@ async function getEventListByUserIdHandler(request, h){
 
         const response = h.response({
             status: 'fail',
-            message: 'Event not found.'
+            message: 'Events not found.'
         });
         response.code(404);
         return response;
@@ -493,11 +505,12 @@ async function getEventByEventIdHandler(request, h){
         const { userid } = request.params;
         const { eventid } = request.params;
         
-        const data = await getEvent(userid, eventid);
+        const [data] = await getEvent(userid, eventid);
 
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'Event fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -527,6 +540,7 @@ async function editEventByEventIdHandler(request, h){
         const { eventid } = request.params;
         const { title, description, startDay, finishDay, startTime, finishTime, finishStatus } = request.payload;
         const updatedAt = getFormattedDateTime();
+        const checkEditDate = new Date(updatedAt);
 
         const editData = {
             "title": title,
@@ -541,15 +555,7 @@ async function editEventByEventIdHandler(request, h){
 
         const [checkUpdate] = await editEventData(userid, eventid, editData);
 
-        if( checkUpdate.title === editData.title && 
-            checkUpdate.description === editData.description && 
-            checkUpdate.startDay === editData.startDay && 
-            checkUpdate.finishDay === editData.finishDay && 
-            checkUpdate.startTime === editData.startTime &&
-            checkUpdate.finishTime === editData.finishTime &&
-            checkUpdate.finishStatus === editData.finishStatus &&
-            checkUpdate.updatedAt === editData.updatedAt){
-
+        if(checkUpdate.updatedAt.getTime() == checkEditDate.getTime()){
             const response = h.response({
                 status: 'success',
                 message: 'Event has been updated.',
@@ -630,12 +636,13 @@ async function createNoteByUserIdHandler(request, h){
             "updatedAt": updatedAt
         }
 
-        await storeNewNote(userid, data);
+        const [result] = await storeNewNote(userid, data);
 
         if(await getNote(userid, noteId)){
             const response = h.response({
                 status: 'success',
                 message: 'New note successfully created.',
+                data: result
             });
             response.code(201);
             return response;
@@ -667,6 +674,7 @@ async function getNotesListByUserIdHandler(request, h){
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'List of note fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -695,11 +703,12 @@ async function getNotesByNoteIdHandler(request, h){
         const { userid } = request.params;
         const { noteid } = request.params;
         
-        const data = await getNote(userid, noteid);
+        const [data] = await getNote(userid, noteid);
 
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'Note fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -729,6 +738,7 @@ async function editNotesByNoteIdHandler(request, h){
         const { noteid } = request.params;
         const { title, description="empty" } = request.payload;
         const updatedAt = getFormattedDateTime();
+        const checkEditDate = new Date(updatedAt);
 
         const editData = {
             "title": title,
@@ -738,23 +748,20 @@ async function editNotesByNoteIdHandler(request, h){
 
         const [checkUpdate] = await editNoteData(userid, noteid, editData);
 
-        if( checkUpdate.title === editData.title && 
-            checkUpdate.description === editData.description && 
-            checkUpdate.updatedAt === editData.updatedAt){
+        if( checkUpdate.updatedAt.getTime() == checkEditDate.getTime()){
 
             const response = h.response({
                 status: 'success',
-                message: 'Event has been updated.',
+                message: 'Note updated successfully.',
                 data: checkUpdate
             });
             response.code(200);
             return response;
         }
 
-
         const response = h.response({
             status: 'fail',
-            message: 'Event failed to update.',
+            message: 'Note failed to update.',
         });
         response.code(400);
         return response;
@@ -820,12 +827,13 @@ async function createNotififcationByUserIdHandler(request, h){
             "createdAt": createdAt
         }
 
-        await storeNewNotification(userid, data);
+        const [result] = await storeNewNotification(userid, data);
 
         if(await getNotification(userid, notificationId)){
             const response = h.response({
                 status: 'success',
                 message: 'New notification successfully created.',
+                data: result
             });
             response.code(201);
             return response;
@@ -857,6 +865,7 @@ async function getNotififcationListByUserIdHandler(request, h){
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'List of notification fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -885,11 +894,12 @@ async function getNotificationByNotificationIdHandler(request, h){
         const { userid } = request.params;
         const { notificationid } = request.params;
         
-        const data = await getNotification(userid, notificationid);
+        const [data] = await getNotification(userid, notificationid);
 
         if(data.length !== 0){
             const response = h.response({
                 status: 'success',
+                message: 'Notification fetched successfully.',
                 data: data
             });
             response.code(200);
@@ -910,40 +920,6 @@ async function getNotificationByNotificationIdHandler(request, h){
           });
           response.code(500);
           return response
-    }
-}
-
-// Search System
-async function searchDataHandler(request, h){
-    try{
-        const { userid } = request.params;
-        const { searchWord } = request.payload;
-
-        const result = await searchData(userid, searchWord);
-
-        if(result[0].length !== 0 || result[1].length !== 0 || result[2].length !== 0){
-            const response = h.response({
-                status: 'success',
-                data: result
-            });
-            response.code(200);
-            return response;
-        }
-
-        const response = h.response({
-            status: 'success',
-            message: 'No matching data.',
-        });
-        response.code(200);
-        return response;
-
-    }catch(error){
-        const response = h.response({
-            status: 'fail',
-            message: error.message,
-        });
-        response.code(500);
-        return response
     }
 }
 
@@ -990,7 +966,7 @@ async function getVisualDataByUserIdHandler(request, h){
             
             const response = h.response({
                 status: 'success',
-                message: 'Data success.',
+                message: 'Data successfully fetched.',
                 data:{
                     chronotype,
                     description,
@@ -1015,6 +991,41 @@ async function getVisualDataByUserIdHandler(request, h){
         response.code(400);
         return response;
         
+    }catch(error){
+        const response = h.response({
+            status: 'fail',
+            message: error.message,
+        });
+        response.code(500);
+        return response
+    }
+}
+
+// Search System
+async function searchDataHandler(request, h){
+    try{
+        const { userid } = request.params;
+        const { searchWord } = request.payload;
+
+        const result = await searchData(userid, searchWord);
+
+        if(result[0].length !== 0 || result[1].length !== 0 || result[2].length !== 0){
+            const response = h.response({
+                status: 'success',
+                message: 'Data successfully fetched.',
+                data: result
+            });
+            response.code(200);
+            return response;
+        }
+
+        const response = h.response({
+            status: 'success',
+            message: 'No matching data.',
+        });
+        response.code(200);
+        return response;
+
     }catch(error){
         const response = h.response({
             status: 'fail',

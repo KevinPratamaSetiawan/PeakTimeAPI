@@ -40,7 +40,7 @@ const routes = [
         handler: deleteUserByUserIdHandler,
     },
     {
-        method: 'POST',
+        method: 'PUT',
         path: '/users/{userid}/profile-picture',
         handler: editUserPictureByUserIdHandler,
         options:{
