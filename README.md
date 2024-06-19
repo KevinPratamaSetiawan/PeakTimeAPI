@@ -1,4 +1,7 @@
 # Project: PeakTimeAPI
+
+**Published Documentation** : https://documenter.getpostman.com/view/35385719/2sA3XSCMs8
+
 API endpoint for PeakTime App
 
 We're creating a schedule manager app with one of the feature being a schedule recommender. the application helps users in improving their productivity by tracking and analyzing their daily activity, rest, and sleep schedules recommending personalized daily routines and classifying users chronotypes, allowing them to optimize their schedules according to their natural alertness and sleepiness patterns. Through this approach, we aim to help users gain a deeper understanding of their behavior patterns and improve their overall time management.
