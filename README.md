@@ -1289,5 +1289,14 @@ Credits:
 
 
 ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃ ⁃
+Reference :
+- Hapi documentation: https://hapi.dev/api/?v=21.3.3
+- Tensoflow documentation: https://js.tensorflow.org/api/latest/
+- TensorFlow JS Decision Forests issue solution: https://github.com/tensorflow/tfjs/issues/7805
+- Running TensorFlow Decision Forests models with TensorFlow.js: https://www.tensorflow.org/decision_forests/tf_df_in_tf_js
+- Running TensorFlow Decision Forests models with TensorFlow.js: https://www.cloudskillsboost.google/paths/36
+- Cloud Engineer Learning Path: https://www.cloudskillsboost.google/paths/11
+- Belajar Membuat Aplikasi Back-End untuk Pemula dengan Google Cloud: https://www.dicoding.com/academies/342/corridor
+- Belajar Penerapan Machine Learning dengan Google Cloud: https://www.dicoding.com/academies/658/corridor
 _________________________________________________
 Powered By: [postman-to-markdown](https://github.com/bautistaj/postman-to-markdown/)
